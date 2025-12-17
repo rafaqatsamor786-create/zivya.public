@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zivya-CRM | Public Enquiry</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .card {
+      background: #ffffff;
+      color: #111;
+      width: 100%;
+      max-width: 480px;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #2c5364;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #203a43, #2c5364);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .success {
+      color: #0a8f3c;
+    }
+
+    .error {
+      color: #c0392b;
+    }
+
+    footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h1>Zivya-CRM</h1>
+    <div class="subtitle">Submit your enquiry and our team will contact you</div>
+
+    <form id="enquiryForm">
+      <label>Name *</label>
+      <input type="text" id="name" required />
+
+      <label>Email or Phone *</label>
+      <input type="text" id="contact" required />
+
+      <label>Description *</label>
+      <textarea id="description" required></textarea>
+
+      <button type="submit" id="submitBtn">Submit Enquiry</button>
+    </form>
+
+    <div class="message success" id="successMsg">
+      ✅ Your enquiry has been submitted successfully.
+    </div>
+
+    <div class="message error" id="errorMsg">
+      ❌ Something went wrong. Please try again.
+    </div>
+
+    <footer>© 2025 Zivya</footer>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // 🔥 Firebase Configuration (AS PROVIDED)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFDs1F2veEivsTdgVODQxE6RbMM8PUqW8",
+      authDomain: "zivya-crm.firebaseapp.com",
+      projectId: "zivya-crm",
+      storageBucket: "zivya-crm.firebasestorage.app",
+      messagingSenderId: "966236643712",
+      appId: "1:966236643712:web:0be45d898e661cbeac6165"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // DOM Elements
+    const form = document.getElementById("enquiryForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const successMsg = document.getElementById("successMsg");
+    const errorMsg = document.getElementById("errorMsg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      successMsg.style.display = "none";
+      errorMsg.style.display = "none";
+
+      const name = document.getElementById("name").value.trim();
+      const contact = document.getElementById("contact").value.trim();
+      const description = document.getElementById("description").value.trim();
+
+      if (!name || !contact || !description) {
+        errorMsg.textContent = "❌ Please fill all required fields.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      try {
+        await addDoc(collection(db, "enquiries"), {
+          name,
+          contact,
+          description,
+          status: "New",
+          createdAt: serverTimestamp()
+        });
+
+        form.reset();
+        successMsg.style.display = "block";
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = "❌ Failed to submit enquiry.";
+        errorMsg.style.display = "block";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Enquiry";
+      }
+    });
+  </script>
+
+</body>
+</html>
